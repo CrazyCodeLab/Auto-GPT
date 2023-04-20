@@ -1,5 +1,5 @@
 # Use an official Python base image from the Docker Hub
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 # Install git
 #这里的 bullseye 是指 Debian 11，如果你使用的是其他版本，需要将其替换为相应的版本号。
@@ -18,6 +18,16 @@ RUN echo "deb https://mirrors.aliyun.com/debian stretch main" >> /etc/apt/source
     sed -i '/stretch/d' /etc/apt/sources.list && \
     apt-get update
 
+# Install Xvfb and other dependencies for headless browser testing
+RUN apt-get update \
+    && apt-get install -y wget gnupg2 libgtk-3-0 libdbus-glib-1-2 dbus-x11 xvfb ca-certificates
+
+# Install Firefox / Chromium
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y chromium firefox-esr
+
 # Set environment variables
 ENV PIP_NO_CACHE_DIR=yes \
     PYTHONUNBUFFERED=1 \
@@ -31,9 +41,10 @@ ENV PIP_NO_CACHE_DIR=yes \
 # USER appuser
 
 # Copy the requirements.txt file and install the requirements
-COPY requirements-docker.txt .
-# COPY --chown=appuser:appuser requirements-docker.txt .
-RUN pip install --no-cache-dir --user -r requirements-docker.txt -i https://mirrors.aliyun.com/pypi/simple/
+COPY requirements.txt .
+# COPY --chown=appuser:appuser requirements.txt .
+RUN sed -i '/Items below this point will not be included in the Docker Image/,$d' requirements.txt && \
+	pip install --no-cache-dir --user -r requirements.txt
 
 # Copy the application files
 # COPY --chown=appuser:appuser autogpt/ ./autogpt
