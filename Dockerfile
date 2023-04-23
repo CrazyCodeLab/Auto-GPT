@@ -3,20 +3,17 @@ FROM python:3.10-slim
 
 # Install git
 #这里的 bullseye 是指 Debian 11，如果你使用的是其他版本，需要将其替换为相应的版本号。
+# 设置时区
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
 #sudo apt update
-RUN cp /etc/apt/sources.list /etc/apt/sources.list.bak && \
-sed -i 's#deb.debian.org#mirrors.aliyun.com#g' /etc/apt/sources.list && \
-sed -i 's#security.debian.org#mirrors.aliyun.com#g' /etc/apt/sources.list && \
-sed -i 's#http:#https:#g' /etc/apt/sources.list && \
-apt-get -y update
-RUN apt-get -y install git inetutils-ping curl wget vim nginx nodejs
-RUN apt-get -y install chromium-driver
-# 特殊安装 java
-RUN echo "deb https://mirrors.aliyun.com/debian stretch main" >> /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get install -y openjdk-8-jdk && \
-    sed -i '/stretch/d' /etc/apt/sources.list && \
-    apt-get update
+    cp /etc/apt/sources.list /etc/apt/sources.list.bak && \
+    sed -i 's#deb.debian.org#mirrors.aliyun.com#g' /etc/apt/sources.list && \
+    sed -i 's#security.debian.org#mirrors.aliyun.com#g' /etc/apt/sources.list && \
+    sed -i 's#http:#https:#g' /etc/apt/sources.list && \
+    apt-get -y update && \
+    apt-get -y install git inetutils-ping curl wget vim nginx nodejs && \
+    apt-get -y install chromium-driver
 
 # Install Xvfb and other dependencies for headless browser testing
 RUN apt-get update \
@@ -27,6 +24,13 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
     && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
     && apt-get install -y chromium firefox-esr
+
+# 特殊安装 java
+RUN echo "deb https://mirrors.aliyun.com/debian stretch main" >> /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y openjdk-8-jdk && \
+    sed -i '/stretch/d' /etc/apt/sources.list && \
+    apt-get update
 
 # Set environment variables
 ENV PIP_NO_CACHE_DIR=yes \
@@ -53,4 +57,4 @@ COPY autogpt/ ./autogpt
 # Set the entrypoint
 ENTRYPOINT ["python", "-m", "autogpt", "--use-memory", "redis", "--gpt3only"]
 # docker exec -it AutoGPT python -m autogpt --gpt3only
-# docker run -it --name autogpt --env-file=./.env -v /f/docker/data/autogpt:/app/auto_gpt_workspace -e HTTP_PROXY=http://192.168.1.58:7890 -e HTTPS_PROXY=http://192.168.1.58:7890 autogpt:20230417
+# docker run -it --name autogpt --env-file=./.env -v /f/docker/data/autogpt:/auto_gpt_workspace -e HTTP_PROXY=http://192.168.1.58:7890 -e HTTPS_PROXY=http://192.168.1.58:7890 autogpt:20230420
